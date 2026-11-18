@@ -5,6 +5,7 @@ module Level1 where
 
 import Console (MyIO, readInt)
 import Data.Map.Strict (Map)
+import Data.Map.Strict (lookup)
 import Data.Map.Strict qualified as Map
 import MetaUtils (todo)
 import Text.Read (readMaybe)
@@ -34,13 +35,16 @@ data Player = Player
   deriving (Eq, Show)
 
 parseName :: String -> Maybe String
-parseName = todo "1.1 name"
+parseName name = if null name then Nothing else Just name
 
 parseScore :: String -> Maybe Integer
-parseScore = todo "1.1 score"
+parseScore = readMaybe
 
 parsePlayer :: String -> Maybe Player
-parsePlayer = todo "1.1 player"
+parsePlayer p = Player <$> (parseName name) <*> (parseScore score)
+  where
+    (name, dirt_score) = break (== ':') p
+    score = drop 1 dirt_score
 
 
 -- 1.2. Точка на плоскости.
@@ -55,13 +59,13 @@ data Point a = Point a a
 instance Applicative Point where
   pure x = Point x x
 
-  Point _ _ <*> Point _ _ = todo "1.2 <*>"
+  (Point x1 y1) <*> (Point x2 y2) = Point (x1 x2) (y1 y2)
 
 stretchPoint :: Num a => a -> Point a -> Point a
-stretchPoint = todo "1.2 stretchPoint"
+stretchPoint x p = liftA2 (*) (pure x) p
 
 sumPoints :: Num a => Point a -> Point a -> Point a -> Point a
-sumPoints = todo "1.2 sumPoints"
+sumPoints p1 p2 p3= liftA2 (+) p1 $ liftA2 (+) p2 p3
 
 
 -- 1.3. Список вычислений.
@@ -85,10 +89,12 @@ data User = User { subscribed :: Bool }
 type Registry = Map UserId User
 
 allResults :: Applicative f => [f a] -> f [a]
-allResults = todo "1.3 allResults"
+allResults [] = pure []
+allResults (x:xs) = (:) <$> x <*> (allResults xs)
 
 check :: Registry -> [UserId] -> Maybe Bool
-check = todo "1.3 check"
+check db ids = and <$> (map subscribed <$> (allResults users))
+  where users = map (\i -> Data.Map.Strict.lookup i db) ids
 
 
 -- 1.4. Чтение нескольких чисел.
@@ -105,4 +111,6 @@ check = todo "1.3 check"
 --   runMyIO (readInts 2) (world [2, 5, 8]) == (world [8], [2, 5])
 
 readInts :: Int -> MyIO [Int]
-readInts = todo "1.4"
+readInts n 
+  | n <= 0 = pure []
+  | otherwise = (:) <$> readInt <*> (readInts (n - 1))
